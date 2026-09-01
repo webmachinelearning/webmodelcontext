@@ -1804,6 +1804,22 @@ respective private browsing modes are safely exposed to [=agents=] and that thes
 
 <h3 id="mitigations">Mitigations</h3>
 
+<h4 id="mitigation-disable-permissions-policy">Disabling WebMCP with Permissions Policy</h4>
+
+**What:** Disable access to WebMCP APIs in documents where WebMCP is not an intended capability.
+
+**Threats addressed:** Unintended tool registration or invocation by scripts executing in those
+documents, including scripts introduced by injection vulnerabilities or compromised dependencies.
+
+**How:** Site authors can deliver a <code>Permissions-Policy: tools=()</code> response header. The
+empty allowlist makes the {{tools}} [=policy-controlled feature=] unavailable to the document and its
+descendants; see [[#permissions-policy]]. This defensive use is not limited to cross-origin
+scenarios: same-origin scripts executing in the document are blocked as well. Because the
+[=user agent=] enforces the policy before WebMCP API operations run, scripts cannot bypass it by
+changing JavaScript load order or replacing page-level guards. This provides defense in depth; it
+does not mitigate the underlying script compromise or prevent scripts from using other web
+capabilities.
+
 <h4 id="mitigation-restrict-input-lengths">Restricting maximum input lengths</h4>
 
 **What:** Restrict the maximum amount of characters
