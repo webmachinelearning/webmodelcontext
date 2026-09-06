@@ -669,7 +669,7 @@ The <dfn method for=ModelContext>registerTool(<var>tool</var>, <var>options</var
 1. If |tool map|[|tool name|] [=map/exists=], then return [=a promise rejected with=] an
    {{InvalidStateError}} {{DOMException}}.
 
-1. If |tool name| or {{ModelContextTool/description}} is an empty string, then return [=a promise
+1. If |tool|'s {{ModelContextTool/description}} is the empty string, then return [=a promise
    rejected with=] an {{InvalidStateError}} {{DOMException}}.
 
 1. If either |tool name| is the empty string, or its [=string/length=] is greater than 128, or if
@@ -721,9 +721,6 @@ The <dfn method for=ModelContext>registerTool(<var>tool</var>, <var>options</var
 1. If |options|'s {{ModelContextRegisterToolOptions/signal}} [=map/exists=], then:
 
    1. Let |signal| be |options|'s {{ModelContextRegisterToolOptions/signal}}.
-
-   1. If |signal| is [=AbortSignal/aborted=], then return [=a promise rejected with=]
-      |signal|'s [=AbortSignal/abort reason=].
 
    1. [=AbortSignal/add|Add the following abort steps=] to |signal|:
 
@@ -833,8 +830,8 @@ The <dfn method for=ModelContext>getTools(<var>options</var>)</dfn> method steps
 
       1. Let |callerOrigin| be |toolRequestor|'s [=Document/origin=].
 
-      1. If |toolOwnerIsRequested| be true if |targetOrigin| is [=same origin=] with |callerOrigin|,
-         or if |from origins| [=list/contains=] |targetOrigin|; otherwise, false.
+      1. Let |toolOwnerIsRequested| be true if |targetOrigin| is [=same origin=] with
+         |callerOrigin|, or if |from origins| [=list/contains=] |targetOrigin|; otherwise, false.
 
       1. If |toolOwnerIsRequested| is false, then [=iteration/continue=].
 
