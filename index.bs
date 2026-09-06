@@ -343,7 +343,7 @@ To <dfn>notify documents of a tool change</dfn> given a {{Document}} |tool owner
 1. [=Assert=]: these steps are running [=in parallel=].
 
 1. Let |navigablesToNotify| be |tool owner|'s [=node navigable=]'s [=navigable/traversable
-   navigable=]'s [=Document/inclusive descendant navigables=].
+   navigable=]'s [=navigable/active document=]'s [=Document/inclusive descendant navigables=].
 
 1. [=list/For each=] |navigable| of |navigablesToNotify|:
 
@@ -478,7 +478,7 @@ internal value=] |uuid|, are as follows:
    Issue: Support more granular errors; here we should return something that prompts the caller to
    reject its {{Promise}} with a "{{DataError}}" {{DOMException}}.
 
-1. If |inputObject| [=Object type|is not an Object=] is false, then run |completionSteps| given null
+1. If |inputObject| [=Object type|is not an Object=], then run |completionSteps| given null
    and false, and abort these steps.
 
    Issue(#146): Specify and fire the "<code>toolactivated</code>" event.
@@ -820,7 +820,7 @@ The <dfn method for=ModelContext>getTools(<var>options</var>)</dfn> method steps
    1. Let |tools| be an empty [=list=] of {{RegisteredTool}} dictionaries.
 
    1. Let |navigables| be |toolRequestor|'s [=node navigable=]'s [=navigable/traversable
-      navigable=]'s [=Document/inclusive descendant navigables=].
+      navigable=]'s [=navigable/active document=]'s [=Document/inclusive descendant navigables=].
 
    1. [=list/For each=] |navigable| of |navigables|:
 
