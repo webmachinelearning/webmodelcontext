@@ -1001,31 +1001,31 @@ The <dfn method for=ModelContext>executeTool(<var>tool</var>, <var>inputObject</
    1. Let |completionSteps| be an algorithm that takes a [=string=]-or-null |result| and a
       [=boolean=] |success|, and runs the following steps:
 
-      1. [=Assert=]: these steps are running [=in parallel=].
+      1. Run the following steps [=in parallel=]:
 
-      1. If |targetDocument|'s [=node navigable=]'s [=navigable/traversable navigable=]'s
-         [=traversable navigable/pending tool executions map=][|uuid|] does not [=map/exist=], then
-         return.
+         1. If |targetDocument|'s [=node navigable=]'s [=navigable/traversable navigable=]'s
+            [=traversable navigable/pending tool executions map=][|uuid|] does not [=map/exist=],
+            then return.
 
-         <div class=note id=pending-execution-removal-race>
-          <p>It is possible that a pending execution identified by |uuid| no longer exists. This can
-          happen due to a race between (a) tool cancellation when the caller document <a
-          href=#caller-destroyed-cleanup>gets destroyed</a> or when the caller aborts the
-          execution via the options signal; and (b) tool promise resolution. Both
-          of these race to invoke |completionSteps|, and the first invocation will remove the
-          pending execution by its key |uuid|, this check protects subsequent racing
-          invocations.</p>
-         </div>
+            <div class=note id=pending-execution-removal-race>
+             <p>It is possible that a pending execution identified by |uuid| no longer exists. This can
+             happen due to a race between (a) tool cancellation when the caller document <a
+             href=#caller-destroyed-cleanup>gets destroyed</a> or when the caller aborts the
+             execution via the options signal; and (b) tool promise resolution. Both
+             of these race to invoke |completionSteps|, and the first invocation will remove the
+             pending execution by its key |uuid|, this check protects subsequent racing
+             invocations.</p>
+            </div>
 
-      1. [=map/Remove=] |targetDocument|'s [=node navigable=]'s [=navigable/traversable
-         navigable=]'s [=traversable navigable/pending tool executions map=][|uuid|].
+         1. [=map/Remove=] |targetDocument|'s [=node navigable=]'s [=navigable/traversable
+            navigable=]'s [=traversable navigable/pending tool executions map=][|uuid|].
 
-      1. If |success| is true, then [=queue a global task=] on the [=webmcp task source=] given
-         |callerDocument|'s [=relevant global object=] to [=resolve=] |promise| with |result|.
+         1. If |success| is true, then [=queue a global task=] on the [=webmcp task source=] given
+            |callerDocument|'s [=relevant global object=] to [=resolve=] |promise| with |result|.
 
-      1. Otherwise, [=queue a global task=] on the [=webmcp task source=] given |callerDocument|'s
-         [=relevant global object=] to [=reject=] |promise| with an "{{UnknownError}}"
-         {{DOMException}}.
+         1. Otherwise, [=queue a global task=] on the [=webmcp task source=] given |callerDocument|'s
+            [=relevant global object=] to [=reject=] |promise| with an "{{UnknownError}}"
+            {{DOMException}}.
 
    1. Let |execution| be a new [=pending tool execution=], with the following [=struct/items=]:
 
