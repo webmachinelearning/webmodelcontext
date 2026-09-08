@@ -72,7 +72,7 @@ None.
 
 The feature is gated by the [`"tools"`](https://webmachinelearning.github.io/webmcp/#permissiondef-tools) permission policy. It is allowed in top-level documents and same-origin descendants by default; The permission policy can be used to allow it in cross-origin iframes and/or to disallow it in same-origin frames.
 
-Additionally, tools can specify [`exposedTo`](https://webmachinelearning.github.io/webmcp/#dom-modelcontextregistertooloptions-exposedto) to control which origins can discover them.
+Additionally, tools can specify [`exposedTo`](https://webmachinelearning.github.io/webmcp/#dom-modelcontextregistertooloptions-exposedto) to control which origins can discover them. Whether tool authors in cross origin iframes can explicitly control exposure to the browser's built in agent, for example through a `native-agent` keyword, is an open design question tracked under [Built-in agent exposure by default](https://github.com/webmachinelearning/webmcp/blob/main/README.md#built-in-agent-default-exposure) in the README.
 
 > 15. How do the features in this specification work in the context of a browser's Private Browsing or Incognito mode?
 
