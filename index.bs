@@ -639,8 +639,28 @@ is a [=model context=] [=struct=] created alongside the {{ModelContext}}.
   <dd>
     <p>Executes a tool on the document it was registered on. Returns a promise that resolves to the
     stringified result of the tool's execution.</p>
+
+    <p><var ignore>tool</var> is a {{RegisteredTool}} returned by {{ModelContext/getTools()}}. Its
+    {{RegisteredTool/inputSchema}} is exposed as a parsed JavaScript object. Callers pass the
+    structured JavaScript value described by that schema as <var ignore>inputObject</var>; the user
+    agent serializes and transfers it to the tool's execution context, so callers do not
+    {{JSON/stringify()}} it first.</p>
   </dd>
 </dl>
+
+<div class=example id=executing-a-discovered-tool>
+  The following discovers a tool and executes it with a JavaScript object:
+
+  ```js
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(({name}) => name === "example_tool");
+
+  if (tool) {
+    console.log(tool.inputSchema.type); // "object"
+    const result = await document.modelContext.executeTool(tool, {message: "hello"});
+  }
+  ```
+</div>
 
 
 <div algorithm>
