@@ -1380,6 +1380,12 @@ often includes screenshots of the page, not just a DOM serialization. See [Annot
 (APC)](https://chromium.googlesource.com/chromium/src.git/+/main/third_party/blink/renderer/modules/content_extraction/readme.md)
 in the Chromium project for an example of what might contribute to an observation.
 
+Note: Including a complete [=observation/tool map=] in each [=observation=] does not require an agent
+implementation to repeatedly append that map verbatim to a backing model's input. Implementations
+can diff, cache, filter, or otherwise absorb repeated observations before incorporating relevant
+information into an agent's working context. Such absorption and context-management strategies are
+agent product decisions and are outside the scope of this specification.
+
 <hr>
 
 <div algorithm>
