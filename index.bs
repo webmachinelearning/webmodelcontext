@@ -1813,12 +1813,9 @@ documents, including scripts introduced by injection vulnerabilities or compromi
 
 **How:** Site authors can deliver a <code>Permissions-Policy: tools=()</code> response header. The
 empty allowlist makes the {{tools}} [=policy-controlled feature=] unavailable to the document and its
-descendants; see [[#permissions-policy]]. This defensive use is not limited to cross-origin
-scenarios: same-origin scripts executing in the document are blocked as well. Because the
-[=user agent=] enforces the policy before WebMCP API operations run, scripts cannot bypass it by
-changing JavaScript load order or replacing page-level guards. This provides defense in depth; it
-does not mitigate the underlying script compromise or prevent scripts from using other web
-capabilities.
+descendants; see [[#permissions-policy]]. This defense applies to every descendant frame, including
+both same-origin and cross-origin ones. The [=user agent=] enforces this before script runs on the
+page, protecting against malicious scripts or dependencies from using WebMCP APIs.
 
 <h4 id="mitigation-restrict-input-lengths">Restricting maximum input lengths</h4>
 
