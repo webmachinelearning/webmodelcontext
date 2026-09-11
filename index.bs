@@ -215,6 +215,9 @@ An <dfn>annotations</dfn> is a [=struct=] with the following [=struct/items=]:
 
   : <dfn>consequential hint</dfn>
   :: a [=boolean=], initially false.
+
+  : <dfn>debugging</dfn>
+  :: a [=boolean=], initially false.
 </dl>
 
 <h3 id="pending-tool-executions">Pending tool executions</h3>
@@ -765,6 +768,9 @@ The <dfn method for=ModelContext>registerTool(<var>tool</var>, <var>options</var
       : [=annotations/consequential hint=]
       :: |tool|'s {{ModelContextTool/annotations}}'s {{ToolAnnotations/consequentialHint}}
 
+      : [=annotations/debugging=]
+      :: |tool|'s {{ModelContextTool/annotations}}'s {{ToolAnnotations/debugging}}
+
    : [=tool definition/exposed origins=]
    :: |exposed origins|
 
@@ -883,9 +889,11 @@ The <dfn method for=ModelContext>getTools(<var>options</var>)</dfn> method steps
                {{ToolAnnotations}} dictionary whose {{ToolAnnotations/readOnlyHint}} is |tool
                definition|'s [=tool definition/annotations=]'s [=annotations/read-only hint=],
                {{ToolAnnotations/untrustedContentHint}} is |tool definition|'s [=tool
-               definition/annotations=]'s [=annotations/untrusted content hint=], and
+               definition/annotations=]'s [=annotations/untrusted content hint=],
                {{ToolAnnotations/consequentialHint}} is |tool definition|'s [=tool
-               definition/annotations=]'s [=annotations/consequential hint=].
+               definition/annotations=]'s [=annotations/consequential hint=], and
+               {{ToolAnnotations/debugging}} is |tool definition|'s [=tool
+               definition/annotations=]'s [=annotations/debugging=].
 
          1. [=list/Append=] |registeredTool| to |tools|.
 
@@ -1080,6 +1088,7 @@ dictionary ToolAnnotations {
   boolean readOnlyHint = false;
   boolean untrustedContentHint = false;
   boolean consequentialHint = false;
+  boolean debugging = false;
 };
 
 dictionary ToolExecuteCallbackOptions {
@@ -1139,6 +1148,9 @@ The {{ToolAnnotations}} dictionary provides optional metadata about a tool:
 
   : <code><var ignore>annotations</var>["{{ToolAnnotations/consequentialHint}}"]</code>
   :: If true, indicates that executing the tool will result in consequential actions that are significant, real-world, or non-reversible, ex: booking a flight, transferring money.
+
+  : <code><var ignore>annotations</var>["{{ToolAnnotations/debugging}}"]</code>
+  :: If true, indicates that the tool is intended for debugging and developer tooling rather than end-user interactions.
 </dl>
 
 <h4 id="tool-execute-callback-options">ToolExecuteCallbackOptions Dictionary</h4>
