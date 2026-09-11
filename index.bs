@@ -217,6 +217,171 @@ An <dfn>annotations</dfn> is a [=struct=] with the following [=struct/items=]:
   :: a [=boolean=], initially false.
 </dl>
 
+<h3 id="json-schema-validation">JSON Schema subset and validation</h3>
+
+This specification uses the subset of [[!JSON-SCHEMA]] Draft 2020-12 defined below, per the <a href="https://www.w3.org/2026/03/05-webmachinelearning-minutes.html#f5bd">2026-03-05 CG resolution</a> that the [=user agent=] is responsible for validation on all three layers (schema meta, input, output). Only input validation is normatively required by this section; schema meta-validation and input validation are specified below. Output validation will be defined in coordination with the `outputSchema` feature (PR <a href="https://github.com/webmachinelearning/webmcp/pull/254">#254</a>).
+
+<div class="note">
+  <p>The subset is intentionally small to keep the [=user agent=] payload minimal. MCP dropped hard `zod` → Standard Schema for the same reason.</p>
+</div>
+
+A <dfn>WebMCP input schema</dfn> is a JavaScript value that is a [=valid WebMCP input schema=].
+
+<table class="data">
+  <thead>
+    <tr><th>Keyword<th>Allowed form<th>Notes
+  <tbody>
+    <tr><td>`type`<td>`"null"`, `"boolean"`, `"object"`, `"array"`, `"number"`, `"integer"`, `"string"`, or an array of those<td>`"integer"` means a number that is an integer
+    <tr><td>`properties`<td>object mapping [=string=] → [=valid WebMCP input schema=]<td>only when instance is an object
+    <tr><td>`required`<td>array of [=strings=]<td>only when instance is an object
+    <tr><td>`enum`<td>array<td>JSON deep equality (SameValue for numbers except `0` and `-0` are equal)
+    <tr><td>`minimum` / `maximum`<td>[=number=]<td>only when instance is a number
+    <tr><td>`exclusiveMinimum` / `exclusiveMaximum`<td>[=number=]<td>only when instance is a number; Draft 2020-12 numeric form (boolean form is invalid)
+    <tr><td>`minLength` / `maxLength`<td>non-negative integer<td>only when instance is a string; measured in UTF-16 code units (JS `length`)
+    <tr><td>`pattern`<td>[=string=]<td>only when instance is a string; ECMA-262 `RegExp` without flags, `test()` semantics (unanchored); invalid pattern makes the schema invalid
+    <tr><td>`items`<td>[=valid WebMCP input schema=]<td>only when instance is an array; schema for elements beyond `prefixItems`
+    <tr><td>`prefixItems`<td>array of [=valid WebMCP input schema=]s<td>only when instance is an array; positional schemas for `0..n-1`
+    <tr><td>`additionalProperties`<td>`false` only (or absent)<td>if `false`, instance object MUST NOT contain properties not listed in `properties`
+    <tr><td>`default`<td>any<td>allowed but ignored for validation
+    <tr><td>`description`<td>[=string=]<td>allowed but ignored for validation
+</table>
+
+The following keywords are explicitly excluded from the [=WebMCP input schema=] subset:
+
+<table class="data">
+  <thead><tr><th>Keyword<th>Rationale
+  <tbody>
+    <tr><td>`$ref`, `$defs`, `$anchor`, `$id`<td>remote/DAG resolution and unbounded payload — keep UA small
+    <tr><td>`unevaluatedProperties`, `unevaluatedItems`<td>requires full schema graph evaluation, complex to implement
+    <tr><td>`format`<td>custom validators are not interoperable across UAs
+    <tr><td>`contentEncoding`, `contentMediaType`, `contentSchema`<td>binary/media handling is out of scope for tool inputs
+    <tr><td>`dependentRequired`, `dependentSchemas`, `if`/`then`/`else`, `allOf`/`anyOf`/`oneOf`/`not`<td>combinators/PR graph beyond trivial subset — defer until proven need
+    <tr><td>any other keyword<td>not in the allowlist above — schema is invalid to avoid silent ignoring (e.g. `format: "email"` would otherwise appear enforced)
+</table>
+
+<div algorithm>
+To determine if a JavaScript value |schema| is a <dfn>valid WebMCP input schema</dfn>, run these steps:
+
+  1. If |schema| is not an [=Object=], then return false.
+  1. If |schema| is an array, then return false.
+  1. Let |allowed| be the [=list=] `« "type", "properties", "required", "enum", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "minLength", "maxLength", "pattern", "items", "prefixItems", "additionalProperties", "default", "description" »`.
+  1. [=map/For each=] |key| → <var ignore>value</var> of |schema|:
+     1. If |allowed| does not [=list/contain=] |key|, then return false.
+  1. If |schema|["type"] [=map/exists=]:
+     1. Let |t| be |schema|["type"].
+     1. If |t| is a [=string=]:
+        1. If |t| is not one of `"null"`, `"boolean"`, `"object"`, `"array"`, `"number"`, `"integer"`, `"string"`, then return false.
+     1. Otherwise, if |t| is an array:
+        1. If |t| [=list/is empty=], then return false.
+        1. [=list/For each=] |el| of |t|: if |el| is not one of the seven strings above, then return false.
+     1. Otherwise, return false.
+  1. If |schema|["properties"] [=map/exists=]:
+     1. Let |props| be |schema|["properties"].
+     1. If |props| is not an [=Object=] or is an array or is null, then return false.
+     1. [=map/For each=] |k| → |v| of |props|: if |v| is not a [=valid WebMCP input schema=], then return false.
+  1. If |schema|["required"] [=map/exists=]:
+     1. If |schema|["required"] is not an array, then return false.
+     1. [=list/For each=] |el| of |schema|["required"]: if |el| is not a [=string=], then return false.
+  1. If |schema|["enum"] [=map/exists=]: if |schema|["enum"] is not an array, then return false.
+  1. If |schema|["minimum"] [=map/exists=] or |schema|["maximum"] [=map/exists=] or |schema|["exclusiveMinimum"] [=map/exists=] or |schema|["exclusiveMaximum"] [=map/exists=]:
+     1. [=list/For each=] |k| of `« "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum" »`: if |schema|[|k|] [=map/exists=] and |schema|[|k|] is not a [=number=], then return false.
+  1. If |schema|["minLength"] [=map/exists=] or |schema|["maxLength"] [=map/exists=]:
+     1. [=list/For each=] |k| of `« "minLength", "maxLength" »`: if |schema|[|k|] [=map/exists=] and (|schema|[|k|] is not a [=number=] or |schema|[|k|] is not an integer or |schema|[|k|] &lt; 0), then return false.
+  1. If |schema|["pattern"] [=map/exists=]:
+     1. If |schema|["pattern"] is not a [=string=], then return false.
+     1. If parsing |schema|["pattern"] as an ECMA-262 {{RegExp}} pattern with no flags throws, then return false.
+  1. If |schema|["prefixItems"] [=map/exists=]:
+     1. If |schema|["prefixItems"] is not an array, then return false.
+     1. [=list/For each=] |el| of |schema|["prefixItems"]: if |el| is not a [=valid WebMCP input schema=], then return false.
+  1. If |schema|["items"] [=map/exists=]: if |schema|["items"] is not a [=valid WebMCP input schema=], then return false.
+  1. If |schema|["additionalProperties"] [=map/exists=]: if |schema|["additionalProperties"] is not `false`, then return false.
+  1. If |schema|["description"] [=map/exists=]: if |schema|["description"] is not a [=string=], then return false.
+  1. Return true.
+</div>
+
+<div algorithm>
+To <dfn>validate a JavaScript value against a WebMCP input schema</dfn> given a JavaScript value |instance| and a [=valid WebMCP input schema=] |schema|, a [=string=] |path| (a JSON Pointer, initially `""`), and a [=string=] |schemaPath| (initially `""`), run these steps. It returns null on success, or a [=map=] `«[ "path" → |path|, "reason" → [=string=], "schemaPath" → |schemaPath| ]»` on the first failure, depth-first:
+
+  1. Let |type| be |schema|["type"] if [=map/exists=]; otherwise null.
+
+     Note: `type` can be a [=string=] or an array of strings.
+
+  1. If |type| is not null:
+     1. Let |types| be `« |type| »` if |type| is a [=string=]; otherwise |type|.
+     1. Let |matched| be false.
+     1. [=list/For each=] |t| of |types|:
+        1. If |t| is `"null"` and |instance| is null, then set |matched| to true.
+        1. If |t| is `"boolean"` and |instance| is a [=boolean=], then set |matched| to true.
+        1. If |t| is `"string"` and |instance| is a [=string=], then set |matched| to true.
+        1. If |t| is `"number"` and |instance| is a [=number=], then set |matched| to true.
+        1. If |t| is `"integer"` and |instance| is a [=number=] and |instance| is an integer, then set |matched| to true.
+        1. If |t| is `"array"` and |instance| is an array, then set |matched| to true.
+        1. If |t| is `"object"` and |instance| is an [=Object=] and |instance| is not an array and |instance| is not null, then set |matched| to true.
+     1. If |matched| is false, then return `«[ "path" → |path|, "reason" → "type", "schemaPath" → |schemaPath| + "/type" ]»`.
+
+  1. If |schema|["enum"] [=map/exists=]:
+     1. Let |found| be false.
+     1. [=list/For each=] |cand| of |schema|["enum"]:
+        1. If |instance| and |cand| are JSON-deep-equal (numbers `0` and `-0` equal, `NaN` never equal), then set |found| to true.
+     1. If |found| is false, then return `«[ "path" → |path|, "reason" → "enum", "schemaPath" → |schemaPath| + "/enum" ]»`.
+
+  1. If |instance| is a [=number=]:
+
+     1. If |schema|["minimum"] [=map/exists=] and |instance| &lt; |schema|["minimum"], then return `«[ "path" → |path|, "reason" → "minimum", "schemaPath" → |schemaPath| + "/minimum" ]»`.
+     1. If |schema|["maximum"] [=map/exists=] and |instance| &gt; |schema|["maximum"], then return `«[ "path" → |path|, "reason" → "maximum", "schemaPath" → |schemaPath| + "/maximum" ]»`.
+     1. If |schema|["exclusiveMinimum"] [=map/exists=] and |instance| ≤ |schema|["exclusiveMinimum"], then return `«[ "path" → |path|, "reason" → "exclusiveMinimum", "schemaPath" → |schemaPath| + "/exclusiveMinimum" ]»`.
+     1. If |schema|["exclusiveMaximum"] [=map/exists=] and |instance| ≥ |schema|["exclusiveMaximum"], then return `«[ "path" → |path|, "reason" → "exclusiveMaximum", "schemaPath" → |schemaPath| + "/exclusiveMaximum" ]»`.
+
+  1. If |instance| is a [=string=]:
+
+     1. If |schema|["minLength"] [=map/exists=] and |instance|'s [=string/length=] &lt; |schema|["minLength"], then return `«[ "path" → |path|, "reason" → "minLength", "schemaPath" → |schemaPath| + "/minLength" ]»`.
+     1. If |schema|["maxLength"] [=map/exists=] and |instance|'s [=string/length=] &gt; |schema|["maxLength"], then return `«[ "path" → |path|, "reason" → "maxLength", "schemaPath" → |schemaPath| + "/maxLength" ]»`.
+     1. If |schema|["pattern"] [=map/exists=]:
+        1. Let |re| be the ECMA-262 {{RegExp}} for |schema|["pattern"] with no flags.
+        1. If |re| test of |instance| is false, then return `«[ "path" → |path|, "reason" → "pattern", "schemaPath" → |schemaPath| + "/pattern" ]»`.
+
+  1. If |instance| is an [=Object=] and |instance| is not an array and |instance| is not null:
+
+     1. If |schema|["required"] [=map/exists=]:
+        1. [=list/For each=] |req| of |schema|["required"]:
+           1. If |instance|[|req|] does not [=map/exist=], then return `«[ "path" → |path|, "reason" → "required", "schemaPath" → |schemaPath| + "/required" ]»` with |path| + "/" + escaped |req|.
+
+           Note: The failing |path| is |path| plus `"/"` plus |req| escaped for JSON Pointer (`~` → `~0`, `/` → `~1`).
+
+     1. If |schema|["properties"] [=map/exists=]:
+        1. [=map/For each=] |prop| → |subSchema| of |schema|["properties"]:
+           1. If |instance|[|prop|] [=map/exists=]:
+              1. Let |subPath| be |path| + "/" + escaped |prop|, and |subSchemaPath| be |schemaPath| + "/properties/" + escaped |prop|.
+              1. Let |r| be the result of [=validate a JavaScript value against a WebMCP input schema=] given |instance|[|prop|], |subSchema|, |subPath|, and |subSchemaPath|.
+              1. If |r| is not null, then return |r|.
+
+     1. If |schema|["additionalProperties"] is `false` and |schema|["properties"] [=map/exists=]:
+        1. [=map/For each=] |key| → <var ignore>v</var> of |instance|:
+           1. If |schema|["properties"][|key|] does not [=map/exist=], then return `«[ "path" → |path| + "/" + escaped |key|, "reason" → "additionalProperties", "schemaPath" → |schemaPath| + "/additionalProperties" ]»`.
+
+  1. If |instance| is an array:
+
+     1. If |schema|["prefixItems"] [=map/exists=]:
+        1. Let |prefix| be |schema|["prefixItems"].
+        1. [=list/For each=] |i| in `0 .. |prefix| [=list/size=] - 1`:
+           1. If |i| &lt; |instance| [=list/size=]:
+              1. Let |r| be the result of [=validate a JavaScript value against a WebMCP input schema=] given |instance|[|i|], |prefix|[|i|], |path| + "/" + |i|, and |schemaPath| + "/prefixItems/" + |i|.
+              1. If |r| is not null, then return |r|.
+        1. If |schema|["items"] [=map/exists=]:
+           1. [=list/For each=] |j| in `|prefix| [=list/size=] .. |instance| [=list/size=] - 1`:
+              1. Let |r| be the result of [=validate a JavaScript value against a WebMCP input schema=] given |instance|[|j|], |schema|["items"], |path| + "/" + |j|, and |schemaPath| + "/items".
+              1. If |r| is not null, then return |r|.
+     1. Otherwise, if |schema|["items"] [=map/exists=]:
+        1. [=list/For each=] |i| in `0 .. |instance| [=list/size=] - 1`:
+           1. Let |r| be the result of [=validate a JavaScript value against a WebMCP input schema=] given |instance|[|i|], |schema|["items"], |path| + "/" + |i|, and |schemaPath| + "/items".
+           1. If |r| is not null, then return |r|.
+
+  1. Return null.
+
+  Note: JSON Pointer escaping is `~` → `~0`, `/` → `~1` per RFC 6901. |path| `""` denotes the root.
+
+</div>
+
 <h3 id="pending-tool-executions">Pending tool executions</h3>
 
 A <dfn>pending tool execution</dfn> is a [=struct=] with the following [=struct/items=]:
@@ -694,16 +859,24 @@ The <dfn method for=ModelContext>registerTool(<var>tool</var>, <var>options</var
        "<code>inputSchema: { toJSON() {return HTMLDivElement;}}</code>", or
        "<code>inputSchema: { toJSON() {return undefined;}}</code>".</p></li>
 
-       <li><p><i>Re-throws exceptions</i> thrown by "<code>JSON.stringify()</code>", e.g., when
-       "<code>inputSchema</code>" is an object with a circular reference, etc.</p></li>
-     </ol>
-   </div>
+        <li><p><i>Re-throws exceptions</i> thrown by "<code>JSON.stringify()</code>", e.g., when
+        "<code>inputSchema</code>" is an object with a circular reference, etc.</p></li>
+      </ol>
+    </div>
 
-1. If |options|'s {{ModelContextRegisterToolOptions/signal}} [=map/exists=] and is
-   [=AbortSignal/aborted=], then return [=a promise rejected with=] |options|'s
-   {{ModelContextRegisterToolOptions/signal}}'s [=AbortSignal/abort reason=].
+ 1. If |stringified input schema| is not the empty string, then:
 
-1. Let |exposed origins| be an empty [=list=] of [=origins=].
+     1. Let |parsed schema| be the result of [=parse a JSON string to a JavaScript value=] given |stringified input schema| and [=this=]'s [=relevant realm=].
+
+        [=Assert=]: This will not throw, because |stringified input schema| was produced by [=serializing a JavaScript value to a JSON string=] above.
+
+     1. If |parsed schema| is not a [=valid WebMCP input schema=], then return [=a promise rejected with=] a new {{TypeError}} whose message describes that `inputSchema` contains an unsupported keyword or invalid structure for the [=WebMCP input schema=] subset.
+
+ 1. If |options|'s {{ModelContextRegisterToolOptions/signal}} [=map/exists=] and is
+    [=AbortSignal/aborted=], then return [=a promise rejected with=] |options|'s
+    {{ModelContextRegisterToolOptions/signal}}'s [=AbortSignal/abort reason=].
+
+ 1. Let |exposed origins| be an empty [=list=] of [=origins=].
 
 1. If |options|'s {{ModelContextRegisterToolOptions/exposedTo}} [=map/exists=], then:
 
@@ -994,14 +1167,42 @@ The <dfn method for=ModelContext>executeTool(<var>tool</var>, <var>inputObject</
 
    1. Let |tool definition| be |targetToolMap|[|toolName|].
 
-   1. If [=tool is exposed to an origin=] given |targetOrigin|, |tool definition|'s [=tool
-      definition/exposed origins=], and |callerOrigin| returns false, then [=queue a global task=]
-      on the [=webmcp task source=] given |callerDocument|'s [=relevant global object=] to
-      [=reject=] |promise| with an "{{UnknownError}}" {{DOMException}}, and abort these steps.
+    1. If [=tool is exposed to an origin=] given |targetOrigin|, |tool definition|'s [=tool
+       definition/exposed origins=], and |callerOrigin| returns false, then [=queue a global task=]
+       on the [=webmcp task source=] given |callerDocument|'s [=relevant global object=] to
+       [=reject=] |promise| with an "{{UnknownError}}" {{DOMException}}, and abort these steps.
 
-      Issue: Support more granular errors than "{{UnknownError}}", based on each failure case.
+       Issue: Support more granular errors than "{{UnknownError}}", based on each failure case.
 
-   1. Let |completionSteps| be an algorithm that takes a [=string=]-or-null |result| and a
+    1. Let |schemaString| be |tool definition|'s [=tool definition/input schema=].
+
+    1. If |schemaString| is not the empty string, then:
+
+        1. Let |schemaObject| be the result of [=parse a JSON string to a JavaScript value=] given |schemaString| and |targetDocument|'s [=relevant realm=].
+
+            [=Assert=]: This will not throw, because |schemaString| was produced by [=serializing a JavaScript value to a JSON string=] during {{ModelContext/registerTool()}} and meta-validated as a [=valid WebMCP input schema=].
+
+        1. Let |inputValue| be the result of [=parse a JSON string to a JavaScript value=] given |inputArguments| and |targetDocument|'s [=relevant realm=].
+
+            [=Assert=]: This will not throw, because |inputArguments| was produced by [=serializing a JavaScript value to a JSON string=] given |inputObject| above.
+
+            Note: Validation is performed on the parsed |inputArguments| — the value the tool's `execute` callback will actually receive — so that `JSON.stringify` transformations (e.g. `Infinity` → `null`, `undefined` stripped) are covered.
+
+        1. Let |validationResult| be the result of [=validate a JavaScript value against a WebMCP input schema=] given |inputValue|, |schemaObject|, `""`, and `""`.
+
+        1. If |validationResult| is not null, then:
+
+            1. Let |errorMessage| be the result of [=serializing a JavaScript value to a JSON string=] given |validationResult|.
+
+                [=Assert=]: This will not throw.
+
+            1. [=Queue a global task=] on the [=webmcp task source=] given |callerDocument|'s [=relevant global object=] to [=reject=] |promise| with a new "{{DataError}}" {{DOMException}} whose message is |errorMessage|.
+
+            1. Abort these steps.
+
+                Note: The tool's `execute` callback is not invoked on validation failure, and no [=pending tool execution=] entry is created. This also protects against the unregistration → re-registration race noted in the [=tool execute steps=]: validation uses the current [=tool definition/input schema=] from |targetToolMap|[|toolName|], so stale `inputArguments` for an old schema correctly fail with `DataError` for the agent to re-`getTools()` and retry.
+
+    1. Let |completionSteps| be an algorithm that takes a [=string=]-or-null |result| and a
       [=boolean=] |success|, and runs the following steps:
 
       1. [=Assert=]: these steps are running [=in parallel=].
