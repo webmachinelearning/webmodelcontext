@@ -101,7 +101,7 @@ Note: this behavior is not yet spec'd but is the intended direction.
 
 > 20. Does your spec define when and how new kinds of errors should be raised?
 
-Yes. `registerTool()` throws `InvalidStateError` for inactive documents, duplicate names, or invalid name/description; `NotAllowedError` when the `"tools"` Permissions Policy is disallowed; `SecurityError` for non-trustworthy [`exposedTo`](https://webmachinelearning.github.io/webmcp/#dom-modelcontextregistertooloptions-exposedto) origins; and `TypeError` when `inputSchema` serialization fails. These errors only reflect the page's own state and inputs, so they do not leak new information.
+Yes. `registerTool()` throws `InvalidStateError` for inactive documents, duplicate names, or invalid name/description; `NotAllowedError` when the `"tools"` Permissions Policy is disallowed; `SecurityError` for non-trustworthy [`exposedTo`](https://webmachinelearning.github.io/webmcp/#dom-modelcontextregistertooloptions-exposedto) origins; and `TypeError` when `inputSchema` or `outputSchema` serialization fails. These errors only reflect the page's own state and inputs, so they do not leak new information.
 
 > 21. Does your feature allow sites to learn about the user's use of assistive technology?
 

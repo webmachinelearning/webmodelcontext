@@ -355,7 +355,7 @@ Any document in the tree matching these origins (and allowed to use `tools` perm
 
 Once tools are registered, in-page agents can discover and invoke them using `getTools()` and `executeTool()`.
 
-Calling `document.modelContext.getTools()` returns a promise that resolves with an array of `RegisteredTool` dictionary objects. Each object contains the tool's `name`, `description`, `inputSchema`, `origin`, and owner `window`. By default, `getTools()` only returns tools registered by documents same-origin with the caller in the frame tree. To retrieve cross-origin tools, you must explicitly list their origins in the `fromOrigins` option. This array only supports secure origins.
+Calling `document.modelContext.getTools()` returns a promise that resolves with an array of `RegisteredTool` dictionary objects. Each object contains the tool's `name`, `description`, `inputSchema`, `outputSchema`, `origin`, and owner `window`. By default, `getTools()` only returns tools registered by documents same-origin with the caller in the frame tree. To retrieve cross-origin tools, you must explicitly list their origins in the `fromOrigins` option. This array only supports secure origins.
 
 ```js
 // Discover tools exposed by same-origin frames in the tree (default)
@@ -365,6 +365,7 @@ for (const tool of tools) {
   console.log(`Tool: ${tool.name} (from ${tool.origin})`);
   console.log(`Description: ${tool.description}`);
   console.log(`Parameters schema:`, tool.inputSchema);
+  console.log(`Output schema:`, tool.outputSchema);
 }
 
 // Discover additional tools provided by a cross-origin frame (in addition to
@@ -517,8 +518,6 @@ As the WebMCP proposal continues to evolve with community and stakeholder feedba
 - **Input and output schema validation**: Investigating native validation of tool inputs and outputs against declared JSON schemas before invoking the page's JS execution callback, or letting the output reach the model. See [Issue #92](https://github.com/webmachinelearning/webmcp/issues/92).
 
 - **Skills Integration**: Determining if the author should expose a higher-level "skill" to help the agent coordinate multiple related tools to fulfill a user journey. See [Issue #161](https://github.com/webmachinelearning/webmcp/issues/161).
-
-- **Output schema**: Supporting structured `outputSchema` contracts (complementing `inputSchema`) to help LLMs reliably reason about the return values of tools. See [Issue #9](https://github.com/webmachinelearning/webmcp/issues/9).
 
 - **User prompting and elicitation**: Exploring a way for a tool to prompt the user for confirmation when tools require explicit user authorization. This could be done by delegating to the agent and its harness, or by invoking native browser permission dialogue outside of the agent loop. See [Issue #165](https://github.com/webmachinelearning/webmcp/issues/165) and [Issue #50](https://github.com/webmachinelearning/webmcp/issues/50) for discussion about the `ModelContextClient` interface.
 

@@ -173,11 +173,20 @@ A <dfn>tool definition</dfn> is a [=struct=] with the following [=struct/items=]
 
      Note: For tools registered by the imperative form of this API (i.e.,
      {{ModelContext/registerTool()}}), this is the stringified representation of
-     {{ModelContextTool/inputSchema}}. For tools registered
+     {{ModelContextTool/inputSchema}}, created by the [=serialize a tool schema=]
+     algorithm. For tools registered
      [declaratively](https://github.com/webmachinelearning/webmcp/blob/main/declarative-api-explainer.md), this will be a
      stringified JSON Schema object created by the
      [=synthesize a declarative JSON Schema object algorithm=].
      [[!JSON-SCHEMA]]
+
+  : <dfn>output schema</dfn>
+  :: a [=string=].
+
+     Note: For tools registered by the imperative form of this API (i.e.,
+     {{ModelContext/registerTool()}}), this is the stringified representation of
+     {{ModelContextTool/outputSchema}}, created by the [=serialize a tool schema=]
+     algorithm.
 
   : <dfn>execute steps</dfn>
   :: an algorithm that takes a {{Document}} <var ignore>targetDocument</var>, a [=string=] <var
@@ -565,6 +574,31 @@ To <dfn for="model context">unregister a tool</dfn> given a {{ModelContext}} |mo
 
 </div>
 
+<div algorithm>
+To <dfn>serialize a tool schema</dfn> given a {{ModelContextTool}} |tool|'s
+{{ModelContextTool/inputSchema}} or {{ModelContextTool/outputSchema}} |schema|:
+
+1. If |tool|'s |schema| does not [=map/exist=], then return the empty string.
+
+1. Return the result of [=serializing a JavaScript value to a JSON string=] given |tool|'s |schema|.
+
+<div class="note">
+  <p>The [=serialize a JavaScript value to a JSON string=] algorithm throws exceptions in the
+  following cases:</p>
+
+  <ol>
+    <li><p><i>Throws a new {{TypeError}}</i> when the backing "<code>JSON.stringify()</code>"
+    yields undefined, e.g.,
+    "<code>inputSchema: { toJSON() {return HTMLDivElement;}}</code>", or
+    "<code>outputSchema: { toJSON() {return undefined;}}</code>".</p></li>
+
+    <li><p><i>Re-throws exceptions</i> thrown by "<code>JSON.stringify()</code>", e.g., when
+    |tool|'s |schema| is an object with a circular reference, etc.</p></li>
+  </ol>
+</div>
+
+</div>
+
 
 <h2 id="api">API</h2>
 
@@ -624,7 +658,7 @@ is a [=model context=] [=struct=] created alongside the {{ModelContext}}.
     <p>Registers a tool that [=agents=] can invoke. Returns a rejected promise if a tool with the
     same name is already registered, if the given {{ModelContextTool/name}} or
     {{ModelContextTool/description}} are empty strings, or if the {{ModelContextTool/inputSchema}}
-    is invalid.</p>
+    or {{ModelContextTool/outputSchema}} is invalid.</p>
   </dd>
 
   <dt><code><var ignore>document</var>.{{Document/modelContext}}.{{ModelContext/getTools(options)}}</code></dt>
@@ -678,26 +712,13 @@ The <dfn method for=ModelContext>registerTool(<var>tool</var>, <var>options</var
    U+002D (-), or U+002E (.), then return [=a promise rejected with=] an {{InvalidStateError}}
    {{DOMException}}.
 
-1. Let |stringified input schema| be the empty string.
+1. Let |stringified input schema| be the result of [=serializing a tool schema=]
+   given |tool|'s {{ModelContextTool/inputSchema}}. If this threw an exception, then return [=a
+   promise rejected with=] that exception.
 
-1. If |tool|'s {{ModelContextTool/inputSchema}} [=map/exists=], then set |stringified input schema|
-   to the result of [=serializing a JavaScript value to a JSON string=], given |tool|'s
-   {{ModelContextTool/inputSchema}}. If this threw an exception, then return [=a promise rejected
-   with=] that exception.
-
-   <div class="note">
-     <p>The serialization algorithm above throws exceptions in the following cases:</p>
-
-     <ol>
-       <li><p><i>Throws a new {{TypeError}}</i> when the backing "<code>JSON.stringify()</code>"
-       yields undefined, e.g.,
-       "<code>inputSchema: { toJSON() {return HTMLDivElement;}}</code>", or
-       "<code>inputSchema: { toJSON() {return undefined;}}</code>".</p></li>
-
-       <li><p><i>Re-throws exceptions</i> thrown by "<code>JSON.stringify()</code>", e.g., when
-       "<code>inputSchema</code>" is an object with a circular reference, etc.</p></li>
-     </ol>
-   </div>
+1. Let |stringified output schema| be the result of [=serializing a tool schema=]
+   given |tool|'s {{ModelContextTool/outputSchema}}. If this threw an exception, then return [=a
+   promise rejected with=] that exception.
 
 1. If |options|'s {{ModelContextRegisterToolOptions/signal}} [=map/exists=] and is
    [=AbortSignal/aborted=], then return [=a promise rejected with=] |options|'s
@@ -745,6 +766,9 @@ The <dfn method for=ModelContext>registerTool(<var>tool</var>, <var>options</var
 
    : [=tool definition/input schema=]
    :: |stringified input schema|
+
+   : [=tool definition/output schema=]
+   :: |stringified output schema|
 
    : [=tool definition/execute steps=]
    :: An algorithm that takes a {{Document}} |targetDocument|, a [=string=] |inputArguments|, an
@@ -868,6 +892,14 @@ The <dfn method for=ModelContext>getTools(<var>options</var>)</dfn> method steps
             :: the result of [=parse a JSON string to a JavaScript value=] given |tool
                definition|'s [=tool definition/input schema=], if |tool definition|'s [=tool
                definition/input schema=] is not the empty string; otherwise undefined.
+
+               Note: This will never throw an exception, because the string stored in the tool
+               definition is always a valid JSON string.
+
+            : {{RegisteredTool/outputSchema}}
+            :: the result of [=parse a JSON string to a JavaScript value=] given |tool
+               definition|'s [=tool definition/output schema=], if |tool definition|'s [=tool
+               definition/output schema=] is not the empty string; otherwise undefined.
 
                Note: This will never throw an exception, because the string stored in the tool
                definition is always a valid JSON string.
@@ -1072,6 +1104,7 @@ dictionary ModelContextTool {
   USVString title;
   required DOMString description;
   object inputSchema;
+  object outputSchema;
   required ToolExecuteCallback execute;
   ToolAnnotations annotations;
 };
@@ -1112,6 +1145,13 @@ callback ToolExecuteCallback = Promise<any> (object inputObject, ToolExecuteCall
   <dt><code><var ignore>tool</var>["{{ModelContextTool/inputSchema}}"]</code></dt>
   <dd>
     <p>A JSON Schema object describing the expected input parameters for the tool [[!JSON-SCHEMA]].
+  </dd>
+
+  <dt><code><var ignore>tool</var>["{{ModelContextTool/outputSchema}}"]</code></dt>
+  <dd>
+    <p>A JSON Schema object describing the expected output structure for the tool [[!JSON-SCHEMA]],
+    so that [=agents=] may use it to insert an [=implementation-defined=] message to guide the
+    language model’s behavior.
   </dd>
 
   <dt><code><var ignore>tool</var>["{{ModelContextTool/execute}}"]</code></dt>
@@ -1220,6 +1260,7 @@ dictionary RegisteredTool {
   DOMString title;
   required DOMString description;
   object inputSchema;
+  object outputSchema;
   required Window window;
   required USVString origin;
   ToolAnnotations annotations;
@@ -1243,6 +1284,12 @@ dictionary RegisteredTool {
   :: A JSON Schema object describing the expected input parameters for the tool
      [[!JSON-SCHEMA]]. It is a deep copy of the schema provided at tool registration, via
      {{ModelContextTool/inputSchema}}.
+
+  : <code><var ignore>tool</var>["{{RegisteredTool/outputSchema}}"]</code>
+  :: A JSON Schema object describing the expected output structure for the tool [[!JSON-SCHEMA]], so
+     that [=agents=] may use it to insert an [=implementation-defined=] message to guide the
+     language model’s behavior. It is a deep copy of the schema provided at tool registration, via
+     {{ModelContextTool/outputSchema}}.
 
   : <code><var ignore>tool</var>["{{RegisteredTool/window}}"]</code>
   :: The {{Window}} of the document that registered the tool.
