@@ -287,7 +287,10 @@ To <dfn>cancel a pending tool execution</dfn> given a [=traversable navigable=] 
    1. [=AbortController/signal abort|Signal abort=] on |localExecution|'s [=local pending tool
       execution/abort controller=].
 
-      Issue(#146): Fire the "toolcanceled" event at |targetDocument|'s relevant global object.
+   1. [=Fire an event=] named {{ModelContext/toolcancel}} at |targetDocument|'s
+      [=Document/associated ModelContext|associated <code>ModelContext</code>=], using
+      {{ToolCancelEvent}}, with its {{ToolCancelEvent/toolName}} attribute initialized to
+      |execution|'s [=pending tool execution/tool name=].
 
 </div>
 
@@ -482,7 +485,9 @@ internal value=] |uuid|, are as follows:
 1. If |inputObject| [=Object type|is not an Object=] is false, then run |completionSteps| given null
    and false, and abort these steps.
 
-   Issue(#146): Specify and fire the "<code>toolactivated</code>" event.
+1. [=Fire an event=] named {{ModelContext/toolactivated}} at |targetDocument|'s [=Document/associated
+   ModelContext|associated <code>ModelContext</code>=], using {{ToolActivatedEvent}}, with its
+   {{ToolActivatedEvent/toolName}} attribute initialized to |tool|'s {{ModelContextTool/name}}.
 
 1. Let |controller| be a [=new=] {{AbortController}} created in |targetDocument|'s [=relevant
    realm=].
@@ -611,6 +616,8 @@ interface ModelContext : EventTarget {
   Promise<DOMString> executeTool(RegisteredTool tool, optional any inputObject, optional ModelContextExecuteToolOptions options = {});
 
   attribute EventHandler ontoolchange;
+  attribute EventHandler ontoolactivated;
+  attribute EventHandler ontoolcancel;
 };
 </xmp>
 
@@ -1319,7 +1326,57 @@ that must be supported, as [=event handler IDL attributes=], by all {{ModelConte
     <tr>
       <td><dfn attribute for="ModelContext">ontoolchange</dfn>
       <td><dfn event for="ModelContext">toolchange</dfn>
+    <tr>
+      <td><dfn attribute for="ModelContext">ontoolactivated</dfn>
+      <td><dfn event for="ModelContext">toolactivated</dfn>
+    <tr>
+      <td><dfn attribute for="ModelContext">ontoolcancel</dfn>
+      <td><dfn event for="ModelContext">toolcancel</dfn>
 </table>
+
+<h4 id="tool-activated-event">ToolActivatedEvent Interface</h4>
+
+The {{ToolActivatedEvent}} interface represents a {{ModelContext/toolactivated}} event that is
+dispatched at a {{ModelContext}} object when the execution of a tool begins.
+
+<xmp class="idl">
+[Exposed=Window, SecureContext]
+interface ToolActivatedEvent : Event {
+  constructor(DOMString type, optional ToolActivatedEventInit eventInitDict = {});
+  readonly attribute DOMString toolName;
+};
+
+dictionary ToolActivatedEventInit : EventInit {
+  DOMString toolName = "";
+};
+</xmp>
+
+<dl class="domintro" dfn-type=attribute dfn-for=ToolActivatedEvent>
+  : <dfn>toolName</dfn>
+  :: Returns the name of the tool whose execution has started.
+</dl>
+
+<h4 id="tool-cancel-event">ToolCancelEvent Interface</h4>
+
+The {{ToolCancelEvent}} interface represents a {{ModelContext/toolcancel}} event that is dispatched
+at a {{ModelContext}} object when the execution of a tool is cancelled.
+
+<xmp class="idl">
+[Exposed=Window, SecureContext]
+interface ToolCancelEvent : Event {
+  constructor(DOMString type, optional ToolCancelEventInit eventInitDict = {});
+  readonly attribute DOMString toolName;
+};
+
+dictionary ToolCancelEventInit : EventInit {
+  DOMString toolName = "";
+};
+</xmp>
+
+<dl class="domintro" dfn-type=attribute dfn-for=ToolCancelEvent>
+  : <dfn>toolName</dfn>
+  :: Returns the name of the tool whose execution was cancelled.
+</dl>
 
 <h3 id="permissions-policy">Permissions policy integration</h3>
 
