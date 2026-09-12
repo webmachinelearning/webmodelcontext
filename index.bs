@@ -1809,11 +1809,11 @@ respective private browsing modes are safely exposed to [=agents=] and that thes
 
 <h4 id="mitigation-restrict-input-lengths">Restricting maximum input lengths</h4>
 
-**What:** Restrict the maximum amount of characters
+**What:** Restrict the maximum number of code points
 
 **Threats addressed:** [[#metadata-description-attacks]]
 
-**How:** This restriction would not fully solve prompt injection attacks but helps shrink the possible universe of attacks, preventing longer prompts that leverage e.g. repetition and sockpuppetting [[SOCKPUPPETTING]] to convince agents of malicious tasks. The specification already implements a nominal size restriction of 128 characters for the tool {{ModelContextTool/name}} (see [[#supporting-concepts]]), but further work is needed to evaluate the right size limits for titles, names, and other inputs. See [Issue #73](https://github.com/webmachinelearning/webmcp/issues/73).
+**How:** This restriction would not fully solve prompt injection attacks but helps shrink the possible universe of attacks, preventing longer prompts that leverage e.g. repetition and sockpuppetting [[SOCKPUPPETTING]] to convince agents of malicious tasks. The specification already implements a nominal size restriction of 128 ASCII [=code points=] for the tool {{ModelContextTool/name}} (see [[#supporting-concepts]]), but further work is needed to evaluate the right size limits for titles, names, and other inputs. See [Issue #73](https://github.com/webmachinelearning/webmcp/issues/73).
 
 <h4 id="mitigation-shared-attack-evals">Supporting interoperable probabilistic defense structures through shared attack eval datasets</h4>
 
